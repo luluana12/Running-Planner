@@ -1,0 +1,5 @@
+sentiment_bucket,count
+Positive,20
+Neutral,0
+Negative,0
+Unknown,0

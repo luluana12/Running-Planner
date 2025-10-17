@@ -1,0 +1,21 @@
+title,genre,publisher,rating,review_text,normalized_rating,text_sentiment,sentiment_score,sentiment_bucket
+Cyberpunk 2077,RPG,CD Projekt Red,3.5,This game has amazing graphics but is buggy and crashes frequently,70.0,50,70.0,Positive
+The Witcher 3: Wild Hunt,RPG,CD Projekt Red,4.8,Fantastic storytelling and beautiful open world,96.0,70,96.0,Positive
+Minecraft,Sandbox,Mojang Studios,4.2,Great creative game for all ages,84.00000000000001,60,84.00000000000001,Positive
+Grand Theft Auto V,Action,Rockstar Games,4.5,Excellent open world with engaging story,90.0,70,90.0,Positive
+Red Dead Redemption 2,Action,Rockstar Games,4.7,Beautiful graphics and immersive gameplay,94.0,60,94.0,Positive
+Among Us,Party Game,InnerSloth,3.8,Fun with friends but gets boring quickly,76.0,50,76.0,Positive
+Valorant,FPS,Riot Games,4.0,Good competitive shooter with tactical gameplay,80.0,60,80.0,Positive
+League of Legends,MOBA,Riot Games,3.5,Frustrating ranked system but fun gameplay,70.0,50,70.0,Positive
+Counter-Strike 2,FPS,Valve,4.3,Classic shooter that never gets old,86.0,50,86.0,Positive
+Baldur's Gate 3,RPG,Larian Studios,4.9,Outstanding RPG with incredible depth,98.00000000000001,70,98.00000000000001,Positive
+Hogwarts Legacy,Adventure,Warner Bros,4.1,Great for Harry Potter fans,82.0,60,82.0,Positive
+Elden Ring,Action RPG,FromSoftware,4.6,Challenging but rewarding experience,92.0,50,92.0,Positive
+God of War,Action,Sony,4.8,Epic storytelling and combat,96.0,50,96.0,Positive
+The Last of Us Part II,Action,Sony,4.4,Emotional story with great gameplay,88.00000000000001,60,88.00000000000001,Positive
+Spider-Man,Action,Sony,4.5,Amazing web-swinging and combat,90.0,60,90.0,Positive
+Horizon Zero Dawn,Action,Sony,4.3,Beautiful post-apocalyptic world,86.0,60,86.0,Positive
+Ghost of Tsushima,Action,Sony,4.7,Stunning visuals and satisfying combat,94.0,50,94.0,Positive
+Fall Guys,Battle Royale,Mediatonic,3.9,Fun party game with friends,78.0,60,78.0,Positive
+Fortnite,Battle Royale,Epic Games,3.7,Good battle royale but too much building,74.0,60,74.0,Positive
+Apex Legends,FPS,EA,4.2,Solid battle royale with unique characters,84.00000000000001,50,84.00000000000001,Positive
