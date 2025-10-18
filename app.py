@@ -32,6 +32,8 @@ if 'prediction' not in st.session_state:
     st.session_state.prediction = None  # Store race performance prediction
 if 'race_data' not in st.session_state:
     st.session_state.race_data = {}  # Store race information
+if 'training_plan' not in st.session_state:
+    st.session_state.training_plan = None  # Store generated training plan
 
 def normalize_dataframe(df):
     """
@@ -268,7 +270,7 @@ def main():
                         st.warning(f"File not found: {data_path}")
     
     # Create tabs for different sections
-    tab1, tab2, tab3 = st.tabs(["🏃 Your Runs", "📊 Visualize Data", "🎯 Performance Prediction"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🏃 Your Runs", "📊 Visualize Data", "🎯 Performance Prediction", "📅 Training Plan"])
     
     # TAB 1: Your Runs (Add new entries and data table)
     with tab1:
@@ -542,6 +544,253 @@ def main():
                     )
         else:
             st.info("👆 Add some runs to get performance predictions!")
+    
+    # TAB 4: Training Plan
+    with tab4:
+        st.header("📅 Weekly Training Plan")
+        
+        if st.session_state.runs_df is not None and not st.session_state.runs_df.empty:
+            # Training Plan Inputs
+            st.subheader("Plan Configuration")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                # Race details
+                st.markdown("**Race Information**")
+                race_name = st.text_input("Race Name", placeholder="Boston Marathon", key="plan_race_name")
+                race_date = st.date_input("Race Date", value=date.today() + timedelta(weeks=8), key="plan_race_date")
+                
+                # Distance selector
+                race_distance_option = st.radio(
+                    "Race Distance",
+                    ["5K (3.1 miles)", "10K (6.2 miles)", "Half Marathon (13.1 miles)", "Marathon (26.2 miles)"],
+                    key="plan_race_distance"
+                )
+                
+                # Map distance option to miles
+                distance_mapping = {
+                    "5K (3.1 miles)": 3.1069,
+                    "10K (6.2 miles)": 6.2137,
+                    "Half Marathon (13.1 miles)": 13.1,
+                    "Marathon (26.2 miles)": 26.2
+                }
+                race_distance = distance_mapping[race_distance_option]
+                
+                # Training start date
+                training_start = st.date_input("Training Start Date", value=date.today(), key="plan_start_date")
+            
+            with col2:
+                # Training preferences
+                st.markdown("**Training Preferences**")
+                
+                # Easy run days per week
+                easy_days = st.slider(
+                    "Easy run days per week (weekdays)",
+                    min_value=0,
+                    max_value=5,
+                    value=3,
+                    help="Number of easy runs during weekdays (Monday-Friday)"
+                )
+                
+                # Long run day
+                long_run_day = st.selectbox(
+                    "Long run day",
+                    ["Saturday", "Sunday"],
+                    index=0,
+                    help="Which day for your long run?"
+                )
+                
+                # Strength training
+                include_strength = st.checkbox(
+                    "Include strength training",
+                    value=False,
+                    help="Add gym/strength training days"
+                )
+                
+                strength_days = 0
+                if include_strength:
+                    strength_days = st.slider(
+                        "Strength training days per week",
+                        min_value=1,
+                        max_value=4,
+                        value=2,
+                        help="Number of strength training days per week"
+                    )
+            
+            # Generate plan button
+            if st.button("📅 Generate Training Plan", type="primary"):
+                try:
+                    # Calculate weeks until race
+                    weeks_until_race = max(1, (race_date - training_start).days // 7)
+                    
+                    if weeks_until_race < 1:
+                        st.error("Race date must be at least 1 week after training start date!")
+                    else:
+                        # Generate the training plan
+                        plan_data = generate_training_plan(
+                            race_date=race_date,
+                            race_distance=race_distance,
+                            training_start=training_start,
+                            easy_days=easy_days,
+                            long_run_day=long_run_day,
+                            include_strength=include_strength,
+                            strength_days=strength_days,
+                            weeks_until_race=weeks_until_race
+                        )
+                        
+                        # Store plan in session state
+                        st.session_state.training_plan = plan_data
+                        st.success(f"✅ Generated {weeks_until_race}-week training plan!")
+                        
+                except Exception as e:
+                    st.error(f"Error generating plan: {str(e)}")
+            
+            # Display the training plan
+            if 'training_plan' in st.session_state and st.session_state.training_plan is not None:
+                st.subheader("Your Training Plan")
+                
+                plan_df = st.session_state.training_plan
+                
+                # Plan summary
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    total_weeks = len(plan_df['Week'].unique())
+                    st.metric("Total Weeks", total_weeks)
+                
+                with col2:
+                    total_runs = len(plan_df[plan_df['Activity'] != 'Rest'])
+                    st.metric("Total Runs", total_runs)
+                
+                with col3:
+                    long_runs = len(plan_df[plan_df['Activity'] == 'Long Run'])
+                    st.metric("Long Runs", long_runs)
+                
+                with col4:
+                    strength_sessions = len(plan_df[plan_df['Activity'] == 'Strength Training'])
+                    st.metric("Strength Sessions", strength_sessions)
+                
+                # Display the plan
+                st.dataframe(
+                    plan_df,
+                    use_container_width=True,
+                    hide_index=True
+                )
+                
+                # Download plan
+                csv_data = plan_df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download Training Plan as CSV",
+                    data=csv_data,
+                    file_name=f"training_plan_{race_name.replace(' ', '_')}_{date.today().strftime('%Y%m%d')}.csv",
+                    mime="text/csv"
+                )
+        else:
+            st.info("👆 Add some runs to get started with training plan generation!")
+
+def generate_training_plan(race_date, race_distance, training_start, easy_days, long_run_day, include_strength, strength_days, weeks_until_race):
+    """
+    Generate a weekly training plan based on user preferences
+    """
+    plan_rows = []
+    current_date = training_start
+    
+    # Calculate target long run distance (progression from 3 miles to 85% of race distance)
+    max_long_run = max(3.0, race_distance * 0.85)
+    long_run_progression = np.linspace(3.0, max_long_run, weeks_until_race)
+    
+    for week in range(1, weeks_until_race + 1):
+        week_start = current_date + timedelta(weeks=week-1)
+        
+        # Get the week's long run distance
+        week_long_run = long_run_progression[week-1]
+        
+        # Create the week's schedule
+        week_schedule = create_week_schedule(
+            week_start=week_start,
+            week_number=week,
+            easy_days=easy_days,
+            long_run_day=long_run_day,
+            long_run_distance=week_long_run,
+            include_strength=include_strength,
+            strength_days=strength_days
+        )
+        
+        plan_rows.extend(week_schedule)
+    
+    # Add race day
+    race_weekday = race_date.strftime('%A')
+    plan_rows.append({
+        'Date': race_date,
+        'Day': race_weekday,
+        'Week': f"Week {weeks_until_race + 1}",
+        'Activity': 'RACE DAY!',
+        'Distance': f"{race_distance:.1f} miles",
+        'Notes': 'Good luck! 🏃‍♂️'
+    })
+    
+    return pd.DataFrame(plan_rows)
+
+def create_week_schedule(week_start, week_number, easy_days, long_run_day, long_run_distance, include_strength, strength_days):
+    """
+    Create a single week's training schedule
+    """
+    week_schedule = []
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    
+    # Track used days for strength training
+    strength_days_used = 0
+    
+    for day_num, day_name in enumerate(days):
+        current_date = week_start + timedelta(days=day_num)
+        
+        # Default to rest day
+        activity = "Rest"
+        distance = ""
+        notes = "Recovery day"
+        
+        # Long run day
+        if day_name == long_run_day:
+            activity = "Long Run"
+            distance = f"{long_run_distance:.1f} miles"
+            notes = "Easy, steady pace"
+        
+        # Easy run days (weekdays only)
+        elif day_name in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] and easy_days > 0:
+            # Distribute easy runs across weekdays
+            if day_num < easy_days:
+                activity = "Easy Run"
+                distance = "3-5 miles"
+                notes = "Conversational pace"
+        
+        # Strength training (avoid long run day and day after)
+        elif include_strength and strength_days_used < strength_days:
+            if day_name != long_run_day and day_name != get_next_day(long_run_day):
+                activity = "Strength Training"
+                distance = ""
+                notes = "Gym/strength session"
+                strength_days_used += 1
+        
+        week_schedule.append({
+            'Date': current_date,
+            'Day': day_name,
+            'Week': f"Week {week_number}",
+            'Activity': activity,
+            'Distance': distance,
+            'Notes': notes
+        })
+    
+    return week_schedule
+
+def get_next_day(day_name):
+    """
+    Get the next day of the week
+    """
+    days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    current_index = days.index(day_name)
+    next_index = (current_index + 1) % 7
+    return days[next_index]
 
 # This runs the main function when the script is executed
 if __name__ == "__main__":
